@@ -112,7 +112,7 @@ class Device:
                 return
         # Set PWM values for pins
         for name, pwm in pins.iteritems():
-            pin = PWM_PINS[name]
+            pin = PWM_PINS[name]['pin']
             PWM.set_duty_cycle(pin, pwm)
         print '[CMD] SET', pins
         reply(ip, {'ack': 'set'})
