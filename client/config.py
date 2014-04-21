@@ -1,4 +1,4 @@
-SERVER_IP = '127.0.0.1'
+SERVER_IP = 'beaglebone.local'
 SERVER_PORT = 7527
 
 REPLY_PORT = 7537
