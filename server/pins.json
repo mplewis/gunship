@@ -1,16 +1,16 @@
 {
     "lift": {
-        "pin": "P9_28",
+        "pin": "P8_13",
         "pwm_start_duty": 0,
         "pwm_freq": 100
     },
     "thrust": {
-        "pin": "P9_29",
+        "pin": "P9_14",
         "pwm_start_duty": 0,
         "pwm_freq": 100
     },
     "rudder": {
-        "pin": "P9_31",
+        "pin": "P9_21",
         "pwm_start_duty": 0,
         "pwm_freq": 100
     }
