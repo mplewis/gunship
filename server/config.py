@@ -1,0 +1,10 @@
+ACCEPTED_COMMANDS = ['off', 'on', 'set', 'read', 'option']
+
+SERVER_IP = '0.0.0.0'
+SERVER_PORT = 7527
+BUFFER_SIZE = 1024
+
+REPLY_PORT = 7537
+
+PWM_MIN = 0
+PWM_MAX = 100
