@@ -19,6 +19,11 @@ def reset_safety():
     safety_failures = 0
 
 
+def trigger_safety_failure():
+    global safety_failures
+    safety_failures = config.SAFETY_MAX_FAILURES
+
+
 def process_data(ip, raw_data):
     try:
         data = json.loads(raw_data)
@@ -44,7 +49,6 @@ def process_data(ip, raw_data):
         return
 
     if cmd == 'on':
-        reset_safety()
         Device.on(ip)
 
     elif cmd == 'off':
@@ -55,7 +59,6 @@ def process_data(ip, raw_data):
             print '[SETNOPINS]', raw_data
             reply(ip, {'err': 'setnopins', 'details': {'data': data}})
             return
-        reset_safety()
         Device.set(ip, data['pins'])
 
     elif cmd == 'read':
@@ -73,6 +76,7 @@ class Device:
 
     @staticmethod
     def off(ip):
+        trigger_safety_failure()
         global device_enabled
         device_enabled = False
         for settings in PWM_PINS.values():
@@ -84,6 +88,7 @@ class Device:
 
     @staticmethod
     def on(ip):
+        reset_safety()
         global device_enabled
         device_enabled = True
         print '[CMD] ON'
@@ -91,6 +96,7 @@ class Device:
 
     @staticmethod
     def set(ip, pins):
+        reset_safety()
         # Validate all pins and PWM values
         for name, pwm in pins.iteritems():
             if name not in PWM_PINS.keys():
