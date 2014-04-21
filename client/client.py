@@ -72,6 +72,8 @@ while True:
     on_button = js[config.BUTTONS['on']]
     off_button = js[config.BUTTONS['off']]
     lift_axis = js[config.AXES['lift']]
+    thrust_axis = js[config.AXES['thrust']]
+    rudder_axis = js[config.AXES['rudder']]
 
     if off_button:
         send_set_commands = False
@@ -84,4 +86,8 @@ while True:
 
     if send_set_commands:
         scaled_lift_axis = shift_scale(lift_axis, 1, -1, 0, 100)
-        commands.set({'lift': scaled_lift_axis})
+        scaled_thrust_axis = shift_scale(thrust_axis, -1, 1, 0, 100)
+        scaled_rudder_axis = shift_scale(rudder_axis, -1, 1, 0, 100)
+        commands.set({'lift': scaled_lift_axis,
+                      'thrust': scaled_thrust_axis,
+                      'rudder': scaled_rudder_axis})

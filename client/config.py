@@ -6,7 +6,9 @@ REPLY_PORT = 7537
 CMD_INTERVAL = 0.01  # seconds
 
 AXES = {
-    'lift': 3
+    'lift': 3,
+    'thrust': 6,
+    'rudder': 5
 }
 
 BUTTONS = {
