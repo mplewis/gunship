@@ -150,6 +150,8 @@ for name, settings in PWM_PINS.iteritems():
     print ('Started PWM for %s on pin %s at duty %s, freq. %s' %
            (name, pin, duty, freq))
 
+trigger_safety_failure()
+
 while True:
     try:
         raw_data, addr = sock.recvfrom(config.BUFFER_SIZE)
