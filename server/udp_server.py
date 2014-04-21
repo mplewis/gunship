@@ -2,12 +2,71 @@ import config
 
 import socket
 import json
-from Adafruit_BBIO import PWM
+
+if config.DEBUG_PWM_LIB:
+    from mock_pwm import PWM
+else:
+    from Adafruit_BBIO import PWM
 
 
 def reply(ip, data_obj):
     msg = json.dumps(data_obj)
     sock.sendto(msg, (ip, config.REPLY_PORT))
+
+
+def reset_safety():
+    global safety_failures
+    safety_failures = 0
+
+
+def process_data(ip, raw_data):
+    try:
+        data = json.loads(raw_data)
+    except ValueError:
+        print '[MALFORM]', raw_data
+        reply(ip, {'err': 'malform', 'details': {'data': raw_data}})
+        return
+
+    if 'cmd' not in data:
+        print '[NOCMD]', raw_data
+        reply(ip, {'err': 'nocmd', 'details': {'data': data}})
+        return
+
+    cmd = data['cmd']
+
+    if not device_enabled and cmd != 'on':
+        Device.off(ip)
+        return
+
+    if cmd not in config.ACCEPTED_COMMANDS:
+        print '[INVALCMD]', raw_data
+        reply(ip, {'err': 'invalcmd', 'details': {'data': data}})
+        return
+
+    if cmd == 'on':
+        reset_safety()
+        Device.on(ip)
+
+    elif cmd == 'off':
+        Device.off(ip)
+
+    elif cmd == 'set':
+        if 'pins' not in data:
+            print '[SETNOPINS]', raw_data
+            reply(ip, {'err': 'setnopins', 'details': {'data': data}})
+            return
+        reset_safety()
+        Device.set(ip, data['pins'])
+
+    elif cmd == 'read':
+        Device.read(ip)
+
+    elif cmd == 'option':
+        if 'options' not in data:
+            print '[OPTNOOPTS]', raw_data
+            reply(ip, {'err': 'optnoopts', 'details': {'data': data}})
+            return
+        Device.option(ip, data['options'])
 
 
 class Device:
@@ -16,6 +75,10 @@ class Device:
     def off(ip):
         global device_enabled
         device_enabled = False
+        for settings in PWM_PINS.values():
+            pin = settings['pin']
+            duty = settings['pwm_start_duty']
+            PWM.set_duty_cycle(pin, duty)
         print '[CMD] OFF'
         reply(ip, {'ack': 'off'})
 
@@ -64,10 +127,12 @@ with open('pins.json', 'r') as f:
 
 
 device_enabled = False
+safety_failures = 0
 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((config.SERVER_IP, config.SERVER_PORT))
+sock.settimeout(config.SAFETY_INTERVAL)
 print 'Serving on IP %s, port %s' % (config.SERVER_IP, config.SERVER_PORT)
 print 'Replying on UDP port %s' % config.REPLY_PORT
 
@@ -80,51 +145,15 @@ for name, settings in PWM_PINS.iteritems():
            (name, pin, duty, freq))
 
 while True:
-    raw_data, addr = sock.recvfrom(config.BUFFER_SIZE)
-    (ip, port) = addr
-
     try:
-        data = json.loads(raw_data)
-    except ValueError:
-        print '[MALFORM]', raw_data
-        reply(ip, {'err': 'malform', 'details': {'data': raw_data}})
+        raw_data, addr = sock.recvfrom(config.BUFFER_SIZE)
+    except socket.timeout:
+        if safety_failures < config.SAFETY_MAX_FAILURES:
+            print '[SAFETY]', safety_failures, config.SAFETY_MAX_FAILURES
+            safety_failures += 1
+            if safety_failures >= config.SAFETY_MAX_FAILURES:
+                Device.off('127.0.0.1')
         continue
 
-    if 'cmd' not in data:
-        print '[NOCMD]', raw_data
-        reply(ip, {'err': 'nocmd', 'details': {'data': data}})
-        continue
-
-    cmd = data['cmd']
-
-    if not device_enabled and cmd != 'on':
-        Device.off(ip)
-        continue
-
-    if cmd not in config.ACCEPTED_COMMANDS:
-        print '[INVALCMD]', raw_data
-        reply(ip, {'err': 'invalcmd', 'details': {'data': data}})
-        continue
-
-    if cmd == 'on':
-        Device.on(ip)
-
-    elif cmd == 'off':
-        Device.off(ip)
-
-    elif cmd == 'set':
-        if 'pins' not in data:
-            print '[SETNOPINS]', raw_data
-            reply(ip, {'err': 'setnopins', 'details': {'data': data}})
-            continue
-        Device.set(ip, data['pins'])
-
-    elif cmd == 'read':
-        Device.read(ip)
-
-    elif cmd == 'option':
-        if 'options' not in data:
-            print '[OPTNOOPTS]', raw_data
-            reply(ip, {'err': 'optnoopts', 'details': {'data': data}})
-            continue
-        Device.option(ip, data['options'])
+    (ip, port) = addr
+    process_data(ip, raw_data)
