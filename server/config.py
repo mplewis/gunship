@@ -14,4 +14,4 @@ SAFETY_INTERVAL = 0.1  # seconds
 SAFETY_MAX_FAILURES = 10  # count
 
 # Use a PWM mock for testing
-DEBUG_PWM_LIB = True
+DEBUG_PWM_LIB = False
